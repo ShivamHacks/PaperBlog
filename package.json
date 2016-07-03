@@ -1,0 +1,22 @@
+{
+  "name": "paperblog",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./app"
+  },
+  "dependencies": {
+    "connect-multiparty": "^2.0.0",
+    "cookies": "^0.6.1",
+    "debug": "~2.2.0",
+    "ejs": "~2.3.3",
+    "express": "~4.13.1",
+    "jsonwebtoken": "^7.0.1",
+    "line-by-line": "^0.1.5",
+    "multer": "^1.1.0",
+    "nedb": "^1.8.0",
+    "shortid": "^2.2.6",
+    "simple-text-parser": "^1.0.0",
+    "underscore": "^1.8.3"
+  }
+}

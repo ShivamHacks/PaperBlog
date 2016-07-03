@@ -1,0 +1,20 @@
+<div id="footer">
+<div class="row text-center">
+<div class="col-xs-4">
+<% for (var i = 0; i < categories.length; i++) { %>
+<a href="/category/<%= categories[i].trim().replace(/\s+/g, '-').toLowerCase() %>"><%= categories[i] %></a><br>
+<% } %>
+</div>
+<div class="col-xs-4">
+<img class="img-responsive hidden-sm hidden-lg" src="https://pbs.twimg.com/profile_images/1097083986/EBPS_Seal_greenback.png" style="margin: auto;">
+<img class="img-responsive hidden-xs hidden-lg" src="https://pbs.twimg.com/profile_images/1097083986/EBPS_Seal_greenback.png" style="max-width:50%;margin: auto;">
+<img class="img-responsive hidden-xs hidden-sm" src="https://pbs.twimg.com/profile_images/1097083986/EBPS_Seal_greenback.png" style="max-width:30%;margin: auto;">
+</div>
+<div class="col-xs-4">
+<a href="#">About Us</a><br>
+<a href="#">Contact</a><br>
+<a href="#">Twitter</a><br>
+<a href="#">Facebook</a>
+</div>
+</div>
+</div>
