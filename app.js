@@ -19,8 +19,7 @@ app.listen(process.env.PORT || '3000', function () {
 app.locals.urlBase = 'http://localhost:3000';
 app.locals.siteName = 'The Clarion';
 app.locals.categories = [ 'News', 'Opinions', 'Entertainment', 'Features', 'Sports' ];
-
-app.locals.theme = 'paper';
+app.locals.theme = 'journal';
 
 // Import Libraries
 
@@ -55,15 +54,16 @@ var parser = new Parser();
 // Public Functions
 
 app.get('/article/:category/:title', function (req, res) {
-  var category = querystring.unescape(req.params.category);
-  var title = querystring.unescape(req.params.title);
+  var category = querystring.escape(req.params.category.toLowerCase());
+  var title = querystring.escape(req.params.title.toLowerCase());
   db.findOne({ urlCategory: category, urlTitle: title }, function (err, article) {
     if (err) { res.json(err); }
     else {
       if (article) {
         try {
           var content = fs.readFileSync('articleText/' + article.id).toString();
-          article.content = content;
+          article.content = parseContent(article.id, content);
+          article.headerImg = article.id + '-' + article.headerImg;
           res.render('article', { article: article });
         } catch (err) { res.send("Error"); }
       } else { res.send("Error"); }
@@ -72,7 +72,7 @@ app.get('/article/:category/:title', function (req, res) {
 });
 
 app.get('/category/:category', function (req, res) {
-  var category = querystring.unescape(req.params.category);
+  var category = querystring.escape(req.params.category.toLowerCase());
   db.find({ urlCategory: category }, function (err, articles) {
     if (err) { res.json(err); }
     else { 
@@ -85,7 +85,7 @@ app.get('/category/:category', function (req, res) {
 });
 
 app.get('/author/:author', function (req, res) {
-  var author = querystring.unescape(req.params.author);
+  var author = querystring.escape(req.params.author.toLowerCase());
   db.find({ urlAuthor: author }, function (err, articles) {
     if (err) { res.json(err); }
     else { 
@@ -98,9 +98,13 @@ app.get('/author/:author', function (req, res) {
 });
 
 app.post('/search', multipartMiddleware, function (req, res) {
-  var query = querystring.unescape(req.body.query);
+  var query = req.body.query;
   var regex = new RegExp('.*' + query + '.*');
-  var params = { $or: [ { title: { $regex: regex } }, { category: { $regex: regex } }, { author: { $regex: regex } } ] };
+  var params = { $or: [ 
+    { title: { $regex: regex } }, 
+    { category: { $regex: regex } }, 
+    { author: { $regex: regex } } ] 
+  };
   db.find(params, function (err, articles) {
     if (err) { res.json(err); }
     else { 
@@ -157,7 +161,8 @@ app.get('/editor/newArticle', function (req, res) {
   var id = shortid.generate();
   res.render('add_article', { 
     article: { 
-      id: id,  title: '',  author: '', category: '', datePublished: '', headerImg: '', content: ''
+      id: id,  title: '',  author: '', category: '', 
+      datePublished: '', headerImg: '', content: ''
     }
   });
 });
@@ -165,22 +170,27 @@ app.get('/editor/newArticle', function (req, res) {
 app.post('/editor/newArticle/:id', multipartMiddleware, function (req, res) {
   var article = req.body.article;
   var id = req.params.id;
-  var empty = noNullVals(article);
-  if (empty.length == 0) {
-    var html = parseContent(id, article.content);
-    fs.writeFileSync('articleText/' + id, html);
-    delete article.content;
-    var data = articlePutParams(id, article);
-    db.insert(data, function (err, newDoc) {
-      if (err) { res.json(err); }
-      else { res.redirect('/article/' + data.urlCategory + '/' + data.urlTitle); }
-    });
-  } else { res.send("ERROR, empty values for the article."); }
+  fs.writeFileSync('articleText/' + id, article.content);
+  delete article.content;
+  var data = articlePutParams(id, article);
+  db.findOne({ id: id }, function (err, article) {
+    if (_.isEmpty(article)) {
+      db.insert(data, function (err, newDoc) {
+        if (err) { res.json(err); }
+        else { res.redirect('/article/' + data.urlCategory + '/' + data.urlTitle); }
+      });
+    } else {
+      db.update({ id: id }, data, {}, function (err) {
+        if (err) { res.json(err); }
+        else { res.redirect('/article/' + data.urlCategory + '/' + data.urlTitle); }
+      });
+    }
+  });
 });
 
 app.get('/editor/editArticle/:category/:title', function (req, res) {
-  var category = querystring.unescape(req.params.category);
-  var title = querystring.unescape(req.params.title);
+  var category = querystring.escape(req.params.category);
+  var title = querystring.escape(req.params.title);
   db.findOne({ urlCategory: category, urlTitle: title }, function (err, article) {
     if (err) { res.json(err); }
     else {
@@ -209,17 +219,18 @@ app.post('/editor/upload/:id', upload.single('file'), function( req, res, next )
 /*
   image: [ imagename.type, image caption ] --> /articleImgs/id-imagename.type
   header: { header content } --> <h2>header content</h2>
-*/
+  */
 
-parser.addRule(/\[(.*?)\]/, function(tag) {
-  var data = tag.replace(/[[\]]/g,'').split(',');
-  var src = "/articleImgs/" + data[0].trim();
-  return "<br><figure><img class='img-responsive' src='" + src + "'><figcaption>" + data[1].trim() + "</figcaption></figure><br>";
-});
-parser.addRule(/\{(.*?)\}/, function(tag) {
-  return "<h2>" + tag.replace(/[{}]/g,'').trim() + "</h2>";
-});
-function parseContent(id, content) {
+  parser.addRule(/\[(.*?)\]/, function(tag) {
+    var data = tag.replace(/[[\]]/g,'').split(',');
+    return "<br><figure><img class='img-responsive' src='/" 
+    + data[0].trim() + "'><figcaption>" 
+    + data[1].trim() + "</figcaption></figure><br>";
+  });
+  parser.addRule(/\{(.*?)\}/, function(tag) {
+    return "<h2>" + tag.replace(/[{}]/g,'').trim() + "</h2>";
+  });
+  function parseContent(id, content) {
   // takes [ imagename.type  ] and turns it into [id-imagename.type]
   var text = content.trim().replace(/\[\s*(.*?)\s*]/g, '[$1]').replace(/\[/g,"[" + id + "-");
   var html = parser.render(text);
@@ -236,6 +247,7 @@ function deleteFile(yes, path) {
   }
 }
 
+// use this client side
 function noNullVals(obj) {
   var empty = [];
   if (_.isEmpty(obj))
@@ -296,6 +308,8 @@ function articlePutParams(id, article) {
 
 // TODO: Error handling
 // TODO, paginate results from category, author, and search
+// TODO, prevent empty arguments in article put ON CLIENT SIDE
+// Optimize db, use find or findOne when applicable
 // ALLOW config option backup = true | false
 // If true, backup files to AWS, Github, or Google Drive
 // Then, have data backed up from providers on relaunch
