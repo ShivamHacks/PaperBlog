@@ -6,6 +6,7 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'articleImgs')));
 
 // Start Server
 
@@ -18,6 +19,8 @@ app.listen(process.env.PORT || '3000', function () {
 app.locals.urlBase = 'http://localhost:3000';
 app.locals.siteName = 'The Clarion';
 app.locals.categories = [ 'News', 'Opinions', 'Entertainment', 'Features', 'Sports' ];
+
+app.locals.theme = 'paper';
 
 // Import Libraries
 
@@ -58,16 +61,18 @@ app.get('/article/:category/:title', function (req, res) {
     if (err) { res.json(err); }
     else {
       if (article) {
-        var content = fs.readFileSync('articleText/' + article.id).toString();
-        article.content = content; // assumes content exists for all articles
-        res.render('article', { article: article });
+        try {
+          var content = fs.readFileSync('articleText/' + article.id).toString();
+          article.content = content;
+          res.render('article', { article: article });
+        } catch (err) { res.send("Error"); }
       } else { res.send("Error"); }
     }
   });
 });
 
 app.get('/category/:category', function (req, res) {
-  var category = req.params.category;
+  var category = querystring.unescape(req.params.category);
   db.find({ urlCategory: category }, function (err, articles) {
     if (err) { res.json(err); }
     else { 
@@ -80,7 +85,7 @@ app.get('/category/:category', function (req, res) {
 });
 
 app.get('/author/:author', function (req, res) {
-  var author = req.params.author;
+  var author = querystring.unescape(req.params.author);
   db.find({ urlAuthor: author }, function (err, articles) {
     if (err) { res.json(err); }
     else { 
@@ -93,11 +98,9 @@ app.get('/author/:author', function (req, res) {
 });
 
 app.post('/search', multipartMiddleware, function (req, res) {
-  var query = req.body.query;
-  console.log(req.body);
+  var query = querystring.unescape(req.body.query);
   var regex = new RegExp('.*' + query + '.*');
   var params = { $or: [ { title: { $regex: regex } }, { category: { $regex: regex } }, { author: { $regex: regex } } ] };
-  console.log(params);
   db.find(params, function (err, articles) {
     if (err) { res.json(err); }
     else { 
@@ -176,8 +179,8 @@ app.post('/editor/newArticle/:id', multipartMiddleware, function (req, res) {
 });
 
 app.get('/editor/editArticle/:category/:title', function (req, res) {
-  var category = req.params.category;
-  var title = req.params.title;
+  var category = querystring.unescape(req.params.category);
+  var title = querystring.unescape(req.params.title);
   db.findOne({ urlCategory: category, urlTitle: title }, function (err, article) {
     if (err) { res.json(err); }
     else {
@@ -203,9 +206,14 @@ app.post('/editor/upload/:id', upload.single('file'), function( req, res, next )
 
 // Parser
 
+/*
+  image: [ imagename.type, image caption ] --> /articleImgs/id-imagename.type
+  header: { header content } --> <h2>header content</h2>
+*/
+
 parser.addRule(/\[(.*?)\]/, function(tag) {
   var data = tag.replace(/[[\]]/g,'').split(',');
-  var src = "https://s3.amazonaws.com/clarionimgs/" + data[0].trim();
+  var src = "/articleImgs/" + data[0].trim();
   return "<br><figure><img class='img-responsive' src='" + src + "'><figcaption>" + data[1].trim() + "</figcaption></figure><br>";
 });
 parser.addRule(/\{(.*?)\}/, function(tag) {
@@ -293,6 +301,7 @@ function articlePutParams(id, article) {
 // Then, have data backed up from providers on relaunch
 // On relaunch, reinitialize database and files in directory
 // To allow for better querying and stuff
+// For search, make index?
 
 // TODO, make article content searchable too via db
 

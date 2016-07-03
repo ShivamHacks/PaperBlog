@@ -5,8 +5,10 @@
   <!-- ADD META TAGS w/ author and such for citing purposes -->
   <!-- Add citation on bottom !!! -->
   <!-- add other fancy footer stuff -->
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+
+  <link rel="stylesheet" href="/themes/<%= theme %>.css">
   <link rel="stylesheet" href="/css/style.css">
+
   <style>
   .txt {
     font-size: 1.3em;
@@ -68,8 +70,16 @@
 
   <% include ./partials/footer %>
 
-  <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+  <script src="/js/jquery.min.js"></script>
+  <script src="/js/bootstrap.min.js"></script>
+  <script>
+  $('#search').keydown(function(event) {
+    if (event.keyCode == 13) {
+      this.form.submit();
+      return false;
+    }
+  });
+  </script>
 
 </body>
 </html>
