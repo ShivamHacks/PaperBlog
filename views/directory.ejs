@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Directory</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+  	<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+  	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+  	<link rel="stylesheet" href="/css/style.css">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+</head>
+<body>
+
+	<% include ./partials/nav %>
+
+	<table class="table table-striped">
+		<thead>
+			<tr>
+				<th>Title</th>
+				<th>Author</th>
+				<th>Category</th>
+				<th>Date Published</th>
+				<th>View Link</th>
+				<th>Edit Link</th>
+				<!--<th>Delete Link</th>-->
+			</tr>
+		</thead>
+		<tbody>
+			<% for (var i = 0; i < articles.length; i++) { %>
+			<tr>
+				<td><%= articles[i].title %></td>
+				<td><%= articles[i].author %></td>
+				<td><%= articles[i].category %></td>
+				<td><%= articles[i].datePublished %></td>
+				<td><a target="_blank" href=<%= urlBase %>/article/<%= articles[i].urlCategory %>/<%= articles[i].urlTitle %>>Link</a></td>
+				<td><a target="_blank" href=<%= urlBase %>/editor/editArticle/<%= articles[i].urlCategory %>/<%= articles[i].urlTitle %>>Link</a></td>
+			</tr>
+			<% } %>
+		</tbody>
+	</table>
+
+	<% include ./partials/footer %>
+
+</body>
+</html>
