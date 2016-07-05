@@ -3,23 +3,23 @@ var path = require('path');
 
 var app = express();
 
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname, 'articleImgs')));
-
 // Start Server
 
 app.listen(process.env.PORT || '3000', function () {
   console.log('Server started on port: ' + this.address().port);
 });
 
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/articleImg', express.static(path.join(__dirname, 'articleImgs')));
+
 // Define local varialbes
 
-app.locals.urlBase = 'http://localhost:3000';
-app.locals.siteName = 'The Clarion';
-app.locals.categories = [ 'News', 'Opinions', 'Entertainment', 'Features', 'Sports' ];
-app.locals.theme = 'journal';
+var config = require('./config.json');
+app.locals.siteName = config.siteName;
+app.locals.categories = config.categories;
+app.locals.theme = config.theme;
 
 // Import Libraries
 
@@ -34,7 +34,9 @@ var querystring = require('querystring');
 var multer = require('multer');
 var storage = multer.diskStorage({
   destination: function (req, file, cb) { cb(null, 'articleImgs/'); },
-  filename: function (req, file, cb) { cb(null, req.params.id + '-' + querystring.escape(file.originalname)); }
+  filename: function (req, file, cb) { 
+    cb(null, req.params.id + '-' + querystring.escape(file.originalname)); 
+  }
 });
 var upload = multer({ storage: storage });
 
@@ -73,9 +75,10 @@ app.get('/article/:category/:title', function (req, res) {
 
 app.get('/category/:category', function (req, res) {
   var category = querystring.escape(req.params.category.toLowerCase());
-  db.find({ urlCategory: category }, function (err, articles) {
+  db.find({ urlCategory: category }, function (err, docs) {
     if (err) { res.json(err); }
-    else { 
+    else {
+      var articles = sortByDate(docs);
       res.render('articles_list', { 
         articles: articles, 
         title: 'in ' + category 
@@ -86,9 +89,10 @@ app.get('/category/:category', function (req, res) {
 
 app.get('/author/:author', function (req, res) {
   var author = querystring.escape(req.params.author.toLowerCase());
-  db.find({ urlAuthor: author }, function (err, articles) {
+  db.find({ urlAuthor: author }, function (err, docs) {
     if (err) { res.json(err); }
     else { 
+      var articles = sortByDate(docs);
       res.render('articles_list', { 
         articles: articles, 
         title: 'from ' + author
@@ -99,15 +103,16 @@ app.get('/author/:author', function (req, res) {
 
 app.post('/search', multipartMiddleware, function (req, res) {
   var query = req.body.query;
-  var regex = new RegExp('.*' + query + '.*');
+  var regex = new RegExp('.*' + query + '.*', 'i');
   var params = { $or: [ 
     { title: { $regex: regex } }, 
     { category: { $regex: regex } }, 
     { author: { $regex: regex } } ] 
   };
-  db.find(params, function (err, articles) {
+  db.find(params, function (err, docs) {
     if (err) { res.json(err); }
     else { 
+      var articles = sortByDate(docs);
       res.render('articles_list', { 
         articles: articles, 
         title: 'with ' + query
@@ -223,7 +228,7 @@ app.post('/editor/upload/:id', upload.single('file'), function( req, res, next )
 
   parser.addRule(/\[(.*?)\]/, function(tag) {
     var data = tag.replace(/[[\]]/g,'').split(',');
-    return "<br><figure><img class='img-responsive' src='/" 
+    return "<br><figure><img class='img-responsive' src='/articleImg/" 
     + data[0].trim() + "'><figcaption>" 
     + data[1].trim() + "</figcaption></figure><br>";
   });
@@ -239,41 +244,13 @@ app.post('/editor/upload/:id', upload.single('file'), function( req, res, next )
 
 // Helper Functions
 
-function deleteFile(yes, path) {
-  if (yes) {
-    fs.unlink(path, function(err) {
-      if (err) console.log(err);
-    });  
-  }
-}
-
-// use this client side
-function noNullVals(obj) {
-  var empty = [];
-  if (_.isEmpty(obj))
-    empty.push(null);
-  for (var key in obj) {
-    if (obj[key] == null || obj[key] == "")
-      empty.push(key);
-  }
-  return empty;
-}
-
-function extractData(obj) {
-  var article = {};
-  for (var key in obj) {
-    article[key] = obj[key].S;
-  }
-  return article;
-}
-
 function linkify(str) {
   return querystring.escape(str.trim().replace(/\s+/g, '-').toLowerCase());
 }
 
-function sortByDate(data, attribute) {
+function sortByDate(data) {
   return _.sortBy(data, function(item) {
-    return new Date(item[attribute]).getTime();
+    return data.dateNum;
   }).reverse();
 }
 
@@ -316,7 +293,11 @@ function articlePutParams(id, article) {
 // On relaunch, reinitialize database and files in directory
 // To allow for better querying and stuff
 // For search, make index?
+// for config, ask to render default pages
+// or use custom pages?
+// if default, can apply theme
 
 // TODO, make article content searchable too via db
 
 module.exports = app;
+

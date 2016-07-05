@@ -5,11 +5,33 @@
           <span class="sr-only">Toggle navigation</span>
           <span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>
         </button>
-        <a class="navbar-brand" href="<%= urlBase %>"><%= siteName %></a>
+        <a class="navbar-brand" href="/"><%= siteName %></a>
       </div>
       <div class="collapse navbar-collapse" id="main-nav">
         <ul class="nav navbar-nav">
-          <li><a href="<%= urlBase %>">Home</a></li>
+          <li><a href="/">Home</a></li>
+          <li class="dropdown">
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#" id="themes">Themes <span class="caret"></span></a>
+              <ul class="dropdown-menu" aria-labelledby="themes">
+                <li><a data-theme="default" class="theme-link" href="#">Default</a></li>
+                <li><a data-theme="cerulean" class="theme-link" href="#">Cerulean</a></li>
+                <li><a data-theme="cosmo" class="theme-link" href="#">Cosmo</a></li>
+                <li><a data-theme="cyborg" class="theme-link" href="#">Cyborg</a></li>
+                <li><a data-theme="darkly" class="theme-link" href="#">Darkly</a></li>
+                <li><a data-theme="flatly" class="theme-link" href="#">Flatly</a></li>
+                <li><a data-theme="journal" class="theme-link" href="#">Journal</a></li>
+                <li><a data-theme="lumen" class="theme-link" href="#">Lumen</a></li>
+                <li><a data-theme="paper" class="theme-link" href="#">Paper</a></li>
+                <li><a data-theme="readable" class="theme-link" href="#">Readable</a></li>
+                <li><a data-theme="sandstone" class="theme-link" href="#">Sandstone</a></li>
+                <li><a data-theme="simplex" class="theme-link" href="#">Simplex</a></li>
+                <li><a data-theme="slate" class="theme-link" href="#">Slate</a></li>
+                <li><a data-theme="spacelab" class="theme-link" href="#">Spacelab</a></li>
+                <li><a data-theme="superhero" class="theme-link" href="#">Superhero</a></li>
+                <li><a data-theme="united" class="theme-link" href="#">United</a></li>
+                <li><a data-theme="yeti" class="theme-link" href="#">Yeti</a></li>
+              </ul>
+            </li>
           <% for (var i = 0; i < categories.length; i++) { %>
           <li><a href="/category/<%= categories[i].trim().replace(/\s+/g, '-').toLowerCase() %>"><%= categories[i] %></a></li>
           <% } %>
